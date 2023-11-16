@@ -43,6 +43,6 @@
 
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 
-        <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="2.0.76" />
+        <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="2.0.78" />
     </ItemGroup>
 </Project>

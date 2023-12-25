@@ -8,5 +8,5 @@
 ## Installation
 
 ```
-Install-Package Soenneker.Blob.Container
+dotnet add package Soenneker.Blob.Container
 ```

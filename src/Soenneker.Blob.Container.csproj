@@ -43,6 +43,6 @@
 
         
 
-        <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="2.1.90" />
+        <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="2.1.91" />
     </ItemGroup>
 </Project>

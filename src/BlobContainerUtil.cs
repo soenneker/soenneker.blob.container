@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Azure.Core.Pipeline;
@@ -7,51 +6,34 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Nito.AsyncEx;
 using Soenneker.Blob.Container.Abstract;
+using Soenneker.Extensions.Configuration;
+using Soenneker.Extensions.String;
+using Soenneker.Extensions.Task;
+using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.AsyncSingleton;
+using Soenneker.Utils.HttpClientCache.Abstract;
+using Soenneker.Utils.SingletonDictionary;
 
 namespace Soenneker.Blob.Container;
 
 ///<inheritdoc cref="IBlobContainerUtil"/>
 public class BlobContainerUtil : IBlobContainerUtil
 {
-    // Does not need disposal: https://github.com/Azure/azure-sdk-for-net/issues/7082
-    private readonly ConcurrentDictionary<string, BlobContainerClient> _blobContainerCache;
-
     private readonly ILogger<BlobContainerUtil> _logger;
-
-    private readonly AsyncLock _containerLock;
+    private readonly IHttpClientCache _httpClientCache;
 
     private readonly AsyncSingleton<BlobClientOptions> _blobClientOptions;
-    private readonly AsyncSingleton<HttpClient> _httpClient;
-    private readonly IConfiguration _config;
+    private readonly SingletonDictionary<BlobContainerClient> _blobContainerClients;
 
-    public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config)
+    public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config, IHttpClientCache httpClientCache)
     {
         _logger = logger;
-        _config = config;
-
-        _containerLock = new AsyncLock();
-        _blobContainerCache = new ConcurrentDictionary<string, BlobContainerClient>();
-
-        _httpClient = new AsyncSingleton<HttpClient>(() =>
-        {
-            var socketsHandler = new SocketsHttpHandler
-            {
-                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-                MaxConnectionsPerServer = 50
-            };
-
-            var httpClient = new HttpClient(socketsHandler);
-            httpClient.Timeout = TimeSpan.FromSeconds(120); // TODO: Review blob download timeout
-
-            return httpClient;
-        });
+        _httpClientCache = httpClientCache;
 
         _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async () =>
         {
-            HttpClient client = await _httpClient.Get();
+            HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil)).NoSync();
 
             var blobClientOptions = new BlobClientOptions
             {
@@ -59,65 +41,52 @@ public class BlobContainerUtil : IBlobContainerUtil
             };
             return blobClientOptions;
         });
-    }
 
-    public async ValueTask<BlobContainerClient> GetClient(string containerName, PublicAccessType publicAccessType = PublicAccessType.None)
-    {
-        string containerLower = containerName.ToLowerInvariant();
-
-        if (_blobContainerCache.TryGetValue(containerLower, out BlobContainerClient? containerClient))
-            return containerClient;
-
-        using (await _containerLock.LockAsync())
+        _blobContainerClients = new SingletonDictionary<BlobContainerClient>(async args =>
         {
-            if (_blobContainerCache.TryGetValue(containerLower, out containerClient))
+            BlobClientOptions options = await _blobClientOptions.Get().NoSync();
+
+            var containerName = (string)args![0];
+            var publicAccessType = (PublicAccessType)args[1];
+
+            var connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
+
+            _logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
+
+            var containerClient = new BlobContainerClient(connectionString, containerName, options);
+
+            if (await containerClient.ExistsAsync().NoSync())
                 return containerClient;
 
-            containerClient = await InitContainer(containerLower, publicAccessType);
+            _logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
+            await containerClient.CreateAsync(publicAccessType).NoSync();
 
-            _blobContainerCache.TryAdd(containerLower, containerClient);
-        }
-
-        return containerClient;
+            return containerClient;
+        });
     }
 
-    /// <summary>
-    /// We have not found a client in cache, so lets create a new one
-    /// </summary>
-    /// <exception cref="NullReferenceException"></exception>
-    private async ValueTask<BlobContainerClient> InitContainer(string containerName, PublicAccessType accessType = PublicAccessType.None)
+    public ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None)
     {
-        BlobClientOptions options = await _blobClientOptions.Get();
+        string containerLower = containerName.ToLowerInvariantFast();
 
-        var connectionString = _config.GetValue<string>("Azure:Storage:Blob:ConnectionString");
-
-        if (connectionString == null)
-            throw new NullReferenceException( "Azure:Storage:Blob:ConnectionString is required");
-
-        var containerClient = new BlobContainerClient(connectionString, containerName, options);
-
-        if (await containerClient.ExistsAsync())
-            return containerClient;
-
-        _logger.LogInformation("Container did not exist, so creating: {name} ...", containerName);
-        await containerClient.CreateAsync(accessType);
-
-        return containerClient;
+        return _blobContainerClients.Get(containerLower, containerLower, publicAccessType);
     }
 
     public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
 
-        await _httpClient.DisposeAsync();
-        await _blobClientOptions.DisposeAsync();
+        await _blobContainerClients.DisposeAsync().NoSync();
+        await _blobClientOptions.DisposeAsync().NoSync();
+        await _httpClientCache.Remove(nameof(BlobContainerUtil)).NoSync();
     }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
 
-        _httpClient.Dispose();
+        _blobContainerClients.Dispose();
         _blobClientOptions.Dispose();
+        _httpClientCache.Remove(nameof(BlobContainerUtil));
     }
 }

@@ -18,5 +18,5 @@ public interface IBlobContainerUtil : IDisposable, IAsyncDisposable
     /// other Azure Utilities
     /// </summary>
     [Pure]
-    ValueTask<BlobContainerClient> GetClient(string containerName, PublicAccessType publicAccessType = PublicAccessType.None);
+    ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None);
 }

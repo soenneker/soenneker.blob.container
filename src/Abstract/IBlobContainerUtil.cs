@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.Contracts;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -18,5 +19,5 @@ public interface IBlobContainerUtil : IDisposable, IAsyncDisposable
     /// other Azure Utilities
     /// </summary>
     [Pure]
-    ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None);
+    ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None, CancellationToken cancellationToken = default);
 }

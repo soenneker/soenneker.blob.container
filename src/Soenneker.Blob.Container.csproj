@@ -41,6 +41,6 @@
         <PackageReference Include="Soenneker.Extensions.Configuration" Version="2.1.417" />
         <PackageReference Include="Soenneker.Extensions.Task" Version="2.1.63" />
         <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="2.1.369" />
-        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="2.1.776" />
+        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="2.1.778" />
     </ItemGroup>
 </Project>

@@ -21,7 +21,6 @@ namespace Soenneker.Blob.Container;
 ///<inheritdoc cref="IBlobContainerUtil"/>
 public class BlobContainerUtil : IBlobContainerUtil
 {
-    private readonly ILogger<BlobContainerUtil> _logger;
     private readonly IHttpClientCache _httpClientCache;
 
     private readonly AsyncSingleton<BlobClientOptions> _blobClientOptions;
@@ -29,9 +28,9 @@ public class BlobContainerUtil : IBlobContainerUtil
 
     public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config, IHttpClientCache httpClientCache)
     {
-        _logger = logger;
         _httpClientCache = httpClientCache;
 
+        // Keep as singleton, the dictionary references it multiple times; we want to share it
         _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async (token, _) =>
         {
             HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil), cancellationToken: token).NoSync();
@@ -40,6 +39,7 @@ public class BlobContainerUtil : IBlobContainerUtil
             {
                 Transport = new HttpClientTransport(client)
             };
+
             return blobClientOptions;
         });
 
@@ -51,14 +51,14 @@ public class BlobContainerUtil : IBlobContainerUtil
 
             var connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
 
-            _logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
+            logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
 
             var containerClient = new BlobContainerClient(connectionString, containerName, options);
 
             if (await containerClient.ExistsAsync(token).NoSync())
                 return containerClient;
 
-            _logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
+            logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
             await containerClient.CreateAsync(publicAccessType, cancellationToken: token).NoSync();
 
             return containerClient;
@@ -87,6 +87,6 @@ public class BlobContainerUtil : IBlobContainerUtil
 
         _blobContainerClients.Dispose();
         _blobClientOptions.Dispose();
-        _httpClientCache.Remove(nameof(BlobContainerUtil));
+        _httpClientCache.RemoveSync(nameof(BlobContainerUtil));
     }
 }

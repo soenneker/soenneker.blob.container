@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using Soenneker.Blob.Container.Registrars;
 using Soenneker.Fixtures.Unit;
 using Soenneker.Utils.Test;
+using Soenneker.Blob.Container.Registrars;
 
 namespace Soenneker.Blob.Container.Tests;
 
@@ -25,6 +25,7 @@ public class Fixture : UnitFixture
 
         IConfiguration config = TestUtil.BuildConfig();
         services.AddSingleton(config);
-        services.AddBlobContainerUtilAsSingleton();
+
+        services.AddBlobContainerUtilAsScoped();
     }
 }

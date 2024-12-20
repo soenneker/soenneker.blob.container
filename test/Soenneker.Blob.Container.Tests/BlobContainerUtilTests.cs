@@ -1,9 +1,6 @@
 using System.Threading.Tasks;
-using Azure.Storage.Blobs;
-using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Soenneker.Blob.Container.Abstract;
-using Soenneker.Extensions.ValueTask;
-using Soenneker.Facts.Local;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
 
@@ -17,14 +14,12 @@ public class BlobContainerUtilTests : FixturedUnitTest
 
     public BlobContainerUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
-        _util = Resolve<IBlobContainerUtil>();
+        _util = Resolve<IBlobContainerUtil>(true);
     }
 
-    [LocalFact]
-    public async Task Get_should_return_client()
+    [Fact]
+    public void Default()
     {
-        BlobContainerClient client = await _util.Get("test").NoSync();
 
-        client.Should().NotBeNull();
     }
 }

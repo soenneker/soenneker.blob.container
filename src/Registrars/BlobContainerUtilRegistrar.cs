@@ -13,15 +13,17 @@ public static class BlobContainerUtilRegistrar
     /// <summary>
     /// Recommended
     /// </summary>
-    public static void AddBlobContainerUtilAsSingleton(this IServiceCollection services)
+    public static IServiceCollection AddBlobContainerUtilAsSingleton(this IServiceCollection services)
     {
-        services.AddHttpClientCache();
-        services.TryAddSingleton<IBlobContainerUtil, BlobContainerUtil>();
+        services.AddHttpClientCacheAsSingleton().TryAddSingleton<IBlobContainerUtil, BlobContainerUtil>();
+
+        return services;
     }
 
-    public static void AddBlobContainerUtilAsScoped(this IServiceCollection services)
+    public static IServiceCollection AddBlobContainerUtilAsScoped(this IServiceCollection services)
     {
-        services.AddHttpClientCache();
-        services.TryAddScoped<IBlobContainerUtil, BlobContainerUtil>();
+        services.AddHttpClientCacheAsSingleton().TryAddScoped<IBlobContainerUtil, BlobContainerUtil>();
+
+        return services;
     }
 }

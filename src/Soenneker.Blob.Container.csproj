@@ -40,6 +40,6 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
         <PackageReference Include="Soenneker.Extensions.Configuration" Version="3.0.655" />
         <PackageReference Include="Soenneker.Utils.AsyncSingleton" Version="3.0.673" />
-        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="3.0.1592" />
+        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="3.0.1593" />
     </ItemGroup>
 </Project>

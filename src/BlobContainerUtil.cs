@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core.Pipeline;
@@ -19,7 +18,7 @@ using Soenneker.Utils.SingletonDictionary;
 namespace Soenneker.Blob.Container;
 
 ///<inheritdoc cref="IBlobContainerUtil"/>
-public class BlobContainerUtil : IBlobContainerUtil
+public sealed class BlobContainerUtil : IBlobContainerUtil
 {
     private readonly IHttpClientCache _httpClientCache;
 
@@ -74,8 +73,6 @@ public class BlobContainerUtil : IBlobContainerUtil
 
     public async ValueTask DisposeAsync()
     {
-        GC.SuppressFinalize(this);
-
         await _blobContainerClients.DisposeAsync().NoSync();
         await _blobClientOptions.DisposeAsync().NoSync();
         await _httpClientCache.Remove(nameof(BlobContainerUtil)).NoSync();
@@ -83,8 +80,6 @@ public class BlobContainerUtil : IBlobContainerUtil
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
-
         _blobContainerClients.Dispose();
         _blobClientOptions.Dispose();
         _httpClientCache.RemoveSync(nameof(BlobContainerUtil));

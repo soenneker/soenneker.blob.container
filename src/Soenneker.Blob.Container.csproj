@@ -41,7 +41,7 @@
 	<ItemGroup>
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-rc.2.25502.107" />
-		<PackageReference Include="Soenneker.Extensions.Configuration" Version="4.0.733" />
+		<PackageReference Include="Soenneker.Extensions.Configuration" Version="4.0.734" />
 		<PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1761" />
 	</ItemGroup>
 </Project>

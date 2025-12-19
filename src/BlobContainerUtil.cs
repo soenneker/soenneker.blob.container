@@ -30,7 +30,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         _httpClientCache = httpClientCache;
 
         // Keep as singleton, the dictionary references it multiple times; we want to share it
-        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async (token, _) =>
+        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async token =>
         {
             HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil), cancellationToken: token).NoSync();
 

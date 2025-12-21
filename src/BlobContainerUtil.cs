@@ -23,7 +23,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
     private readonly IHttpClientCache _httpClientCache;
 
     private readonly AsyncSingleton<BlobClientOptions> _blobClientOptions;
-    private readonly SingletonDictionary<BlobContainerClient> _blobContainerClients;
+    private readonly SingletonDictionary<BlobContainerClient, PublicAccessType> _blobContainerClients;
 
     public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config, IHttpClientCache httpClientCache)
     {
@@ -32,7 +32,8 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         // Keep as singleton, the dictionary references it multiple times; we want to share it
         _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async token =>
         {
-            HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil), cancellationToken: token).NoSync();
+            HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil), cancellationToken: token)
+                                                     .NoSync();
 
             var blobClientOptions = new BlobClientOptions
             {
@@ -42,11 +43,10 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
             return blobClientOptions;
         });
 
-        _blobContainerClients = new SingletonDictionary<BlobContainerClient>(async (containerName, token, args) =>
+        _blobContainerClients = new SingletonDictionary<BlobContainerClient, PublicAccessType>(async (containerName, token, publicAccessType) =>
         {
-            BlobClientOptions options = await _blobClientOptions.Get(token).NoSync();
-
-            var publicAccessType = (PublicAccessType)args[0];
+            BlobClientOptions options = await _blobClientOptions.Get(token)
+                                                                .NoSync();
 
             var connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
 
@@ -54,28 +54,34 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
 
             var containerClient = new BlobContainerClient(connectionString, containerName, options);
 
-            if (await containerClient.ExistsAsync(token).NoSync())
+            if (await containerClient.ExistsAsync(token)
+                                     .NoSync())
                 return containerClient;
 
             logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
-            await containerClient.CreateAsync(publicAccessType, cancellationToken: token).NoSync();
+            await containerClient.CreateAsync(publicAccessType, cancellationToken: token)
+                                 .NoSync();
 
             return containerClient;
         });
     }
 
-    public ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None, CancellationToken cancellationToken = default)
+    public ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None,
+        CancellationToken cancellationToken = default)
     {
         string containerLower = containerName.ToLowerInvariantFast();
 
-        return _blobContainerClients.Get(containerLower, cancellationToken, publicAccessType);
+        return _blobContainerClients.Get(containerLower, publicAccessType, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _blobContainerClients.DisposeAsync().NoSync();
-        await _blobClientOptions.DisposeAsync().NoSync();
-        await _httpClientCache.Remove(nameof(BlobContainerUtil)).NoSync();
+        await _blobContainerClients.DisposeAsync()
+                                   .NoSync();
+        await _blobClientOptions.DisposeAsync()
+                                .NoSync();
+        await _httpClientCache.Remove(nameof(BlobContainerUtil))
+                              .NoSync();
     }
 
     public void Dispose()

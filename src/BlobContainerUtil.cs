@@ -23,29 +23,27 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
     private const string _httpClientKey = nameof(BlobContainerUtil);
 
     private readonly ILogger<BlobContainerUtil> _logger;
-    private readonly IConfiguration _config;
     private readonly IHttpClientCache _httpClientCache;
 
     private readonly AsyncSingleton<BlobClientOptions> _blobClientOptions;
     private readonly SingletonDictionary<BlobContainerClient, PublicAccessType> _blobContainerClients;
 
+    private readonly string _connectionString;
+
     public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config, IHttpClientCache httpClientCache)
     {
         _logger = logger;
-        _config = config;
         _httpClientCache = httpClientCache;
 
-        // No closure: method group to instance method
-        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(CreateBlobClientOptions);
+        _connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
 
-        // No closure: method group to instance method
+        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(CreateBlobClientOptions);
         _blobContainerClients = new SingletonDictionary<BlobContainerClient, PublicAccessType>(CreateBlobContainerClient);
     }
 
     private async ValueTask<BlobClientOptions> CreateBlobClientOptions(CancellationToken token)
     {
-        HttpClient client = await _httpClientCache.Get(_httpClientKey, cancellationToken: token)
-                                                  .NoSync();
+        HttpClient client = await _httpClientCache.Get(_httpClientKey, cancellationToken: token).NoSync();
 
         return new BlobClientOptions
         {
@@ -53,25 +51,23 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         };
     }
 
-    private async ValueTask<BlobContainerClient> CreateBlobContainerClient(string containerName, CancellationToken token, PublicAccessType publicAccessType)
+    private async ValueTask<BlobContainerClient> CreateBlobContainerClient(
+        string containerName,
+        CancellationToken token,
+        PublicAccessType publicAccessType)
     {
-        BlobClientOptions options = await _blobClientOptions.Get(token)
-                                                            .NoSync();
-
-        var connectionString = _config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
+        BlobClientOptions options = await _blobClientOptions.Get(token).NoSync();
 
         _logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
 
-        var containerClient = new BlobContainerClient(connectionString, containerName, options);
+        var containerClient = new BlobContainerClient(_connectionString, containerName, options);
 
-        if (await containerClient.ExistsAsync(token)
-                                 .NoSync())
+        if (await containerClient.ExistsAsync(token).NoSync())
             return containerClient;
 
         _logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
 
-        await containerClient.CreateAsync(publicAccessType, cancellationToken: token)
-                             .NoSync();
+        await containerClient.CreateAsync(publicAccessType, cancellationToken: token).NoSync();
 
         return containerClient;
     }

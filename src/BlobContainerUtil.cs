@@ -20,6 +20,10 @@ namespace Soenneker.Blob.Container;
 ///<inheritdoc cref="IBlobContainerUtil"/>
 public sealed class BlobContainerUtil : IBlobContainerUtil
 {
+    private const string _httpClientKey = nameof(BlobContainerUtil);
+
+    private readonly ILogger<BlobContainerUtil> _logger;
+    private readonly IConfiguration _config;
     private readonly IHttpClientCache _httpClientCache;
 
     private readonly AsyncSingleton<BlobClientOptions> _blobClientOptions;
@@ -27,50 +31,55 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
 
     public BlobContainerUtil(ILogger<BlobContainerUtil> logger, IConfiguration config, IHttpClientCache httpClientCache)
     {
+        _logger = logger;
+        _config = config;
         _httpClientCache = httpClientCache;
 
-        // Keep as singleton, the dictionary references it multiple times; we want to share it
-        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(async token =>
+        // No closure: method group to instance method
+        _blobClientOptions = new AsyncSingleton<BlobClientOptions>(CreateBlobClientOptions);
+
+        // No closure: method group to instance method
+        _blobContainerClients = new SingletonDictionary<BlobContainerClient, PublicAccessType>(CreateBlobContainerClient);
+    }
+
+    private async ValueTask<BlobClientOptions> CreateBlobClientOptions(CancellationToken token)
+    {
+        HttpClient client = await _httpClientCache.Get(_httpClientKey, cancellationToken: token)
+                                                  .NoSync();
+
+        return new BlobClientOptions
         {
-            HttpClient client = await httpClientCache.Get(nameof(BlobContainerUtil), cancellationToken: token)
-                                                     .NoSync();
+            Transport = new HttpClientTransport(client)
+        };
+    }
 
-            var blobClientOptions = new BlobClientOptions
-            {
-                Transport = new HttpClientTransport(client)
-            };
+    private async ValueTask<BlobContainerClient> CreateBlobContainerClient(string containerName, CancellationToken token, PublicAccessType publicAccessType)
+    {
+        BlobClientOptions options = await _blobClientOptions.Get(token)
+                                                            .NoSync();
 
-            return blobClientOptions;
-        });
+        var connectionString = _config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
 
-        _blobContainerClients = new SingletonDictionary<BlobContainerClient, PublicAccessType>(async (containerName, token, publicAccessType) =>
-        {
-            BlobClientOptions options = await _blobClientOptions.Get(token)
-                                                                .NoSync();
+        _logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
 
-            var connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
+        var containerClient = new BlobContainerClient(connectionString, containerName, options);
 
-            logger.LogInformation("Connecting to Azure Blob container ({container})...", containerName);
-
-            var containerClient = new BlobContainerClient(connectionString, containerName, options);
-
-            if (await containerClient.ExistsAsync(token)
-                                     .NoSync())
-                return containerClient;
-
-            logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
-            await containerClient.CreateAsync(publicAccessType, cancellationToken: token)
-                                 .NoSync();
-
+        if (await containerClient.ExistsAsync(token)
+                                 .NoSync())
             return containerClient;
-        });
+
+        _logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
+
+        await containerClient.CreateAsync(publicAccessType, cancellationToken: token)
+                             .NoSync();
+
+        return containerClient;
     }
 
     public ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None,
         CancellationToken cancellationToken = default)
     {
         string containerLower = containerName.ToLowerInvariantFast();
-
         return _blobContainerClients.Get(containerLower, publicAccessType, cancellationToken);
     }
 
@@ -80,7 +89,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
                                    .NoSync();
         await _blobClientOptions.DisposeAsync()
                                 .NoSync();
-        await _httpClientCache.Remove(nameof(BlobContainerUtil))
+        await _httpClientCache.Remove(_httpClientKey)
                               .NoSync();
     }
 
@@ -88,6 +97,6 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
     {
         _blobContainerClients.Dispose();
         _blobClientOptions.Dispose();
-        _httpClientCache.RemoveSync(nameof(BlobContainerUtil));
+        _httpClientCache.RemoveSync(_httpClientKey);
     }
 }

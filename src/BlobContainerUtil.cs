@@ -13,7 +13,7 @@ using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.AsyncSingleton;
 using Soenneker.Utils.HttpClientCache.Abstract;
-using Soenneker.Utils.SingletonDictionary;
+using Soenneker.Dictionaries.Singletons;
 
 namespace Soenneker.Blob.Container;
 
@@ -52,7 +52,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         };
     }
 
-    private async ValueTask<BlobContainerClient> CreateBlobContainerClient(string containerName, CancellationToken token, PublicAccessType publicAccessType)
+    private async ValueTask<BlobContainerClient> CreateBlobContainerClient(string containerName, PublicAccessType publicAccessType, CancellationToken token)
     {
         BlobClientOptions options = await _blobClientOptions.Get(token)
                                                             .NoSync();

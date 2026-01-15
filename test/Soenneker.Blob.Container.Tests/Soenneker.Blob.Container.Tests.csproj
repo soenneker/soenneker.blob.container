@@ -19,7 +19,7 @@
         </Content>
     </ItemGroup>
 
-    <ItemGroup><PackageReference Include="Soenneker.Facts.Local" Version="4.0.547" />
+    <ItemGroup><PackageReference Include="Soenneker.Facts.Local" Version="4.0.551" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>

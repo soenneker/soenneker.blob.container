@@ -1,21 +1,19 @@
 using Soenneker.Blob.Container.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
-
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.Blob.Container.Tests;
 
-[Collection("Collection")]
-public class BlobContainerUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class BlobContainerUtilTests : HostedUnitTest
 {
     private readonly IBlobContainerUtil _util;
 
-    public BlobContainerUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public BlobContainerUtilTests(Host host) : base(host)
     {
         _util = Resolve<IBlobContainerUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 

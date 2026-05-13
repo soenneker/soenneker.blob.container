@@ -42,7 +42,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
         <PackageReference Include="Soenneker.Extensions.Configuration" Version="4.0.822" />
         <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1945" />
     </ItemGroup>

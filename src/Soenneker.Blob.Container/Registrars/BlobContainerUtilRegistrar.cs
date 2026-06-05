@@ -20,6 +20,11 @@ public static class BlobContainerUtilRegistrar
         return services;
     }
 
+    /// <summary>
+    /// Adds blob container util as scoped.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The result of the operation.</returns>
     public static IServiceCollection AddBlobContainerUtilAsScoped(this IServiceCollection services)
     {
         services.AddHttpClientCacheAsSingleton().TryAddScoped<IBlobContainerUtil, BlobContainerUtil>();

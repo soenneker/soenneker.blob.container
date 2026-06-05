@@ -80,6 +80,10 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         return _blobContainerClients.Get(containerLower, publicAccessType, cancellationToken);
     }
 
+    /// <summary>
+    /// Asynchronously releases resources used by the current instance.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask DisposeAsync()
     {
         await _blobContainerClients.DisposeAsync()
@@ -90,6 +94,9 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
                               .NoSync();
     }
 
+    /// <summary>
+    /// Releases resources used by the current instance.
+    /// </summary>
     public void Dispose()
     {
         _blobContainerClients.Dispose();

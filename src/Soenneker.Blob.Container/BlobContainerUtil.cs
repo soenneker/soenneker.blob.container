@@ -17,7 +17,7 @@ using Soenneker.Dictionaries.Singletons;
 
 namespace Soenneker.Blob.Container;
 
-///<inheritdoc cref="IBlobContainerUtil"/>
+/// <inheritdoc cref="IBlobContainerUtil"/>
 public sealed class BlobContainerUtil : IBlobContainerUtil
 {
     private const string _httpClientKey = nameof(BlobContainerUtil);

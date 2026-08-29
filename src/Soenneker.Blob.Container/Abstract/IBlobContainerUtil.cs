@@ -18,6 +18,10 @@ public interface IBlobContainerUtil : IDisposable, IAsyncDisposable
     /// NOTE: <paramref name="containerName"/> will be converted to lowercase. Will create container if it doesn't exist. Essentially shouldn't be used outside of
     /// other Azure Utilities
     /// </summary>
+    /// <param name="containerName">Name of the container to target.</param>
+    /// <param name="publicAccessType">Blob-container public access level to require.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task whose result is the requested blob Container Client.</returns>
     [Pure]
     ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None, CancellationToken cancellationToken = default);
 }

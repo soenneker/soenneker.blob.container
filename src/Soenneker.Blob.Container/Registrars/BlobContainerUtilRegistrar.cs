@@ -13,6 +13,8 @@ public static class BlobContainerUtilRegistrar
     /// <summary>
     /// Recommended
     /// </summary>
+    /// <param name="services">Service collection that receives the registration.</param>
+    /// <returns>The same service collection, so additional registrations can be chained.</returns>
     public static IServiceCollection AddBlobContainerUtilAsSingleton(this IServiceCollection services)
     {
         services.AddHttpClientCacheAsSingleton().TryAddSingleton<IBlobContainerUtil, BlobContainerUtil>();
@@ -21,10 +23,10 @@ public static class BlobContainerUtilRegistrar
     }
 
     /// <summary>
-    /// Adds blob container util as scoped.
+    /// Registers Blob Container Util with a scoped lifetime.
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="services">Service collection that receives the registration.</param>
+    /// <returns>The same service collection, so additional registrations can be chained.</returns>
     public static IServiceCollection AddBlobContainerUtilAsScoped(this IServiceCollection services)
     {
         services.AddHttpClientCacheAsSingleton().TryAddScoped<IBlobContainerUtil, BlobContainerUtil>();

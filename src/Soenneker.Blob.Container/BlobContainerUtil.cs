@@ -61,13 +61,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
 
         var containerClient = new BlobContainerClient(_connectionString, containerName, options);
 
-        if (await containerClient.ExistsAsync(token)
-                                 .NoSync())
-            return containerClient;
-
-        _logger.LogInformation("Blob container ({container}) did not exist, so creating...", containerName);
-
-        await containerClient.CreateAsync(publicAccessType, cancellationToken: token)
+        await containerClient.CreateIfNotExistsAsync(publicAccessType, cancellationToken: token)
                              .NoSync();
 
         return containerClient;

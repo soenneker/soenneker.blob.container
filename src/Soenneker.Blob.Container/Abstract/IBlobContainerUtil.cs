@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.Contracts;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
@@ -8,20 +7,16 @@ using Azure.Storage.Blobs.Models;
 namespace Soenneker.Blob.Container.Abstract;
 
 /// <summary>
-/// A utility library for Azure Blob storage container operations <para/>
-/// This should used for any connection to blob storage that we need due to it's reuse of connections. <para/>
-/// Typically Singleton IoC
+/// Resolves and caches Azure Blob container clients, creating missing containers when first requested.
 /// </summary>
 public interface IBlobContainerUtil : IDisposable, IAsyncDisposable
 {
     /// <summary>
-    /// NOTE: <paramref name="containerName"/> will be converted to lowercase. Will create container if it doesn't exist. Essentially shouldn't be used outside of
-    /// other Azure Utilities
+    /// Gets a cached container client and creates the container atomically if it does not exist.
     /// </summary>
     /// <param name="containerName">Name of the container to target.</param>
-    /// <param name="publicAccessType">Blob-container public access level to require.</param>
+    /// <param name="publicAccessType">Public access level to use only if the container must be created.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
-    /// <returns>A task whose result is the requested blob Container Client.</returns>
-    [Pure]
+    /// <returns>The client targeting the normalized container name.</returns>
     ValueTask<BlobContainerClient> Get(string containerName, PublicAccessType publicAccessType = PublicAccessType.None, CancellationToken cancellationToken = default);
 }

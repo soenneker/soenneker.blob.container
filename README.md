@@ -5,7 +5,7 @@
 
 # Soenneker.Blob.Container
 
-A utility library for Azure Blob storage container operations This should used for any connection to blob storage that we need due to it's reuse of connections. Typically Singleton IoC.
+Creates missing Azure Blob containers and caches their `BlobContainerClient` instances for reuse.
 
 ## Install
 
@@ -13,33 +13,73 @@ A utility library for Azure Blob storage container operations This should used f
 dotnet add package Soenneker.Blob.Container
 ```
 
-## Quick start
+Configure the required connection string:
+
+```json
+{
+  "Azure": {
+    "Storage": {
+      "Blob": {
+        "ConnectionString": "<connection string>"
+      }
+    }
+  }
+}
+```
+
+Supply the real value through an environment-specific secret provider.
+
+Register the singleton utility in `Program.cs`:
 
 ```csharp
 using Soenneker.Blob.Container.Registrars;
-using Microsoft.Extensions.DependencyInjection;
 
-var services = new ServiceCollection();
-var result = services.AddBlobContainerUtilAsSingleton();
+builder.Services.AddBlobContainerUtilAsSingleton();
 ```
 
-Recommended.
+Singleton is the normal lifetime because the utility owns the container-client and HTTP-client caches. Scoped registration is available for specialized hosts, while its HTTP-client cache remains singleton.
 
-## What you get
+## Resolve a container
 
-- `IBlobContainerUtil` — A utility library for Azure Blob storage container operations This should used for any connection to blob storage that we need due to it's reuse of connections. Typically Singleton IoC.
-- `BlobContainerUtilRegistrar` — A utility library for Azure Blob storage container operations.
+```csharp
+using Azure.Storage.Blobs;
+using Soenneker.Blob.Container.Abstract;
 
-## API at a glance
+BlobContainerClient invoices = await blobContainers.Get(
+    "Invoices",
+    cancellationToken: cancellationToken);
+```
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `IBlobContainerUtil.Get(containerName, publicAccessType, cancellationToken)` | NOTE: `containerName` will be converted to lowercase. Will create container if it doesn't exist. Essentially shouldn't be used outside of other Azure Utilities. | A task whose result is the requested blob Container Client. |
-| `BlobContainerUtilRegistrar.AddBlobContainerUtilAsSingleton(services)` | Recommended. | The same service collection, so additional registrations can be chained. |
-| `BlobContainerUtilRegistrar.AddBlobContainerUtilAsScoped(services)` | Registers Blob Container Util with a scoped lifetime. | The same service collection, so additional registrations can be chained. |
+The name is normalized to lowercase, so this example targets `invoices`. The first lookup atomically creates the container if it is missing; concurrent creators do not require a separate existence check.
 
-## Practical notes
+The returned Azure SDK client can be used directly:
+
+```csharp
+await foreach (BlobItem blob in invoices.GetBlobsAsync(
+                   cancellationToken: cancellationToken))
+{
+    Console.WriteLine(blob.Name);
+}
+```
+
+## Public access
+
+Containers are private by default:
+
+```csharp
+BlobContainerClient assets = await blobContainers.Get(
+    "public-assets",
+    PublicAccessType.Blob,
+    cancellationToken);
+```
+
+`publicAccessType` applies only when the container is created. It does not read, verify, or change the access policy of an existing container. Clients are cached by normalized container name, so every caller must use one consistent creation policy for that container.
+
+Public access can expose stored data without authentication. Prefer `PublicAccessType.None` and issue narrowly scoped SAS URLs when external access is required.
+
+## Operational behavior
 
 - Cancellation stops pending work; it does not undo work that has already completed.
-- Calls that return a cached or singleton value reuse the same instance until the owning service is disposed.
-- Dispose instances you own when their scope ends so held resources can be released.
+- Container creation requires credentials with the appropriate storage-account permission.
+- A successful lookup is cached for the utility lifetime. External container deletion is not detected by the cache; later SDK operations will report that the container is missing.
+- Dependency injection disposes the utility and its shared transport. Manually created instances must be disposed.

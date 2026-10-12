@@ -45,6 +45,6 @@
     <ItemGroup>
         <PackageReference Include="Azure.Storage.Blobs" Version="12.30.1" />
         <PackageReference Include="Soenneker.Extensions.Configuration" Version="4.0.901" />
-        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.2106" />
+        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.2107" />
     </ItemGroup>
 </Project>

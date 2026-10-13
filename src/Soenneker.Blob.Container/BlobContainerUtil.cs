@@ -35,7 +35,7 @@ public sealed class BlobContainerUtil : IBlobContainerUtil
         _logger = logger;
         _httpClientCache = httpClientCache;
 
-        _connectionString = config.GetValueStrict<string>("Azure:Storage:Blob:ConnectionString");
+        _connectionString = config.GetStringStrict("Azure:Storage:Blob:ConnectionString");
 
         _blobClientOptions = new AsyncSingleton<BlobClientOptions>(CreateBlobClientOptions);
         _blobContainerClients = new SingletonDictionary<BlobContainerClient, PublicAccessType>(CreateBlobContainerClient);
